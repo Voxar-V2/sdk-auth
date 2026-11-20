@@ -220,6 +220,28 @@ VoxarAuth::resolveUsersUsing(fn (Identity $identity) => Member::forVoxar($identi
 | `fake()` | `VoxarAuthFake` | Voxar Auth simulé pour les tests ([section 4](#4-tests-dans-une-application)). |
 | `authorizeUrl(…)`, `exchangeCode(…)` | | Bas niveau, utilisés par les routes du SDK. |
 
+### Organisations (comptes professionnels)
+
+Les organisations vivent dans **Voxar Auth** et sont partagées par toutes les applications : membres,
+rôles (`admin` / `member`), unités (arborescence, manager), invitations et suspensions. Chaque application
+garde ses propres réglages (modules, rétention…) et désigne organisations, unités et personnes par leur **uuid**.
+
+- `$identity->organization` : `?OrganizationMembership` (`id`, `name`, `role`, `organizationSuspended`,
+  `memberSuspended`, `unitIds`, `isAdmin()`), `null` pour un compte personnel.
+- Annuaire : `VoxarAuth::organization($uuid)` ou `VoxarAuth::organizationOf($userUuid)` →
+  `['organization' => [id, name, suspended], 'units' => [[id, parent_id, name, manager_id]], 'members' => [[id, name, email, …, role, suspended, unit_ids]]]`.
+- Modifications : `createOrganization`, `updateOrganization`, `deleteOrganization`, `createUnit`, `updateUnit`,
+  `deleteUnit`, `saveMember($org, $user, ['role' => …, 'unit_ids' => […], 'suspended' => …])`, `removeMember`,
+  `invitations`, `invite`, `resendInvitation`, `revokeInvitation`. Un refus (dernier administrateur, compte
+  déjà dans une autre organisation…) lève `VoxarAuthException` (code 422) avec le motif.
+- Les invitations sont envoyées par Voxar Auth ; le lien ouvre Voxar Auth, où la personne rejoint l’organisation.
+- Les administrateurs d’une organisation la gèrent aussi depuis **Mon compte Voxar → Organisation**.
+- Tests : `VoxarAuth::fake()` simule les organisations en mémoire (`withOrganization($annuaire)`,
+  `assertOrganizationCall('saveMember', fn (...) => …)`, `assertNoOrganizationCalls()`).
+
+Une application qui garde une copie locale (Voxar Chat, Voxar Agenda) la resynchronise depuis l’annuaire
+(par exemple au plus une fois par minute et par organisation).
+
 ### Commandes Artisan du SDK (dans l'application)
 
 | Commande | Rôle |
