@@ -1,0 +1,47 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          coverage: none
+          tools: composer:v2
+
+      - name: Validate composer.json
+        run: composer validate --strict --no-check-lock
+
+      - name: Install dependencies
+        run: composer install --prefer-dist --no-interaction --no-progress
+
+      - name: Lint PHP files
+        run: |
+          find src config routes database -type f \( -name '*.php' -o -name '*.php.stub' \) -print0 \
+            | xargs -0 -n1 php -l
+
+      - name: Build package archive
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          composer archive --format=zip --dir=dist --file="voxar-auth-sdk-${VERSION}"
+          ls -lh dist
+
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" dist/*.zip \
+            --title "$GITHUB_REF_NAME" \
+            --generate-notes \
+            --verify-tag

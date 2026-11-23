@@ -51,8 +51,18 @@ En résumé : **1 commande sur Voxar Auth, 3 commandes et 1 ligne de code dans l
 }
 ```
 
-> En production / CI, remplacez le dépôt `path` par le dépôt Git :
-> `{ "type": "vcs", "url": "git@github.com:<organisation>/sdk-voxar-auth.git" }`.
+> En production / CI, remplacez le dépôt `path` par le dépôt GitHub et installez une version publiée
+> (chaque tag `vX.Y.Z` crée une Release GitHub via `.github/workflows/release.yml`) :
+>
+> ```json
+> "repositories": {
+>     "voxar-auth-sdk": { "type": "vcs", "url": "https://github.com/Voxar-V2/sdk-auth.git" }
+> }
+> ```
+>
+> puis `composer require voxar/auth-sdk:^1.0`. Le dépôt étant privé, Composer a besoin d'un token GitHub
+> (scope `repo`) : `composer config --global github-oauth.github.com <token>`, ou la variable
+> `COMPOSER_AUTH` en CI.
 
 ```bash
 composer require voxar/auth-sdk:@dev
