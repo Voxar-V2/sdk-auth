@@ -1,8 +1,15 @@
 name: Release
 
 on:
+  # Tag poussé à la main : git tag v1.2.3 && git push origin v1.2.3
   push:
     tags: ['v*']
+  # Appelé automatiquement par la CI (CD) après un push sur main
+  workflow_call:
+    inputs:
+      tag:
+        required: true
+        type: string
 
 permissions:
   contents: write
@@ -10,9 +17,13 @@ permissions:
 jobs:
   release:
     runs-on: ubuntu-latest
+    env:
+      TAG: ${{ inputs.tag || github.ref_name }}
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag || github.ref }}
 
       - uses: shivammathur/setup-php@v2
         with:
@@ -33,7 +44,7 @@ jobs:
 
       - name: Build package archive
         run: |
-          VERSION="${GITHUB_REF_NAME#v}"
+          VERSION="${TAG#v}"
           composer archive --format=zip --dir=dist --file="voxar-auth-sdk-${VERSION}"
           ls -lh dist
 
@@ -41,7 +52,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "$GITHUB_REF_NAME" dist/*.zip \
-            --title "$GITHUB_REF_NAME" \
+          gh release create "$TAG" dist/*.zip \
+            --title "$TAG" \
             --generate-notes \
             --verify-tag
